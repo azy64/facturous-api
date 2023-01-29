@@ -12,7 +12,7 @@ use ApiPlatform\Metadata\ApiResource;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: CustomerRepository::class)]
-#[ApiResource(security:"is_granted('ROLE_USER')")]
+#[ApiResource(security:"is_granted('ROLE_USER')and object.owner==user")]
 #[ApiFilter(SearchFilter::class,properties:[
     'id'=>'exact',
     'denomination'=>'partial',

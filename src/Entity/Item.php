@@ -9,7 +9,9 @@ use ApiPlatform\Metadata\ApiResource;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ItemRepository::class)]
-#[ApiResource]
+#[ApiResource(
+    security:"is_granted('ROLE_USER') and object.owner==user",
+)]
 class Item
 {
     #[ORM\Id]
