@@ -5,6 +5,12 @@ namespace App\Entity;
 use ApiPlatform\Doctrine\Orm\Filter\DateFilter;
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
 use App\Repository\FactureRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -14,7 +20,23 @@ use ApiPlatform\Metadata\ApiResource;
 use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: FactureRepository::class)]
-#[ApiResource]
+#[ApiResource(
+    security:"is_granted('ROLE_USER') and object.owner==user",
+    operations:[
+        new Get(),
+        new GetCollection(),
+        new Post(
+            denormalizationContext:['groups'=>['load:facture','write:facture:data','write:item:data',]],
+            normalizationContext:['groups'=>['read:facture:data','read:item:data']],
+        ),
+        new Patch(),
+        new Put(),
+        new Delete(),
+    ],
+)]
+/**
+ * applied a filter for searching factures
+ */
 #[ApiFilter(SearchFilter::class,properties:[
     'id'=>'exact',
     'customer'=>'partial',
@@ -28,11 +50,11 @@ class Facture
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups('read:facture:data')]
+    #[Groups(['read:facture:data'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups('read:facture:data')]
+    #[Groups('load:facture')]
     private ?string $num_fac = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
@@ -40,31 +62,31 @@ class Facture
     private ?\DateTimeInterface $date_vente = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups('read:facture:data')]
+    #[Groups(['read:facture:data','write:facture:data'])]
     private ?string $num_tva = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups('read:facture:data')]
+    #[Groups(['read:facture:data','write:facture:data'])]
     private ?string $num_bon_order = null;
 
     #[ORM\Column]
-    #[Groups('read:facture:data')]
+    #[Groups(['read:facture:data','write:facture:data'])]
     private ?float $total_amount_ht = null;
 
     #[ORM\Column]
-    #[Groups('read:facture:data')]
+    #[Groups(['read:facture:data','write:facture:data'])]
     private ?float $total_amount_ttc = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups('read:facture:data')]
+    #[Groups(['read:facture:data','write:facture:data'])]
     private ?string $adresse_fac = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups('read:facture:data')]
+    #[Groups(['read:facture:data','write:facture:data'])]
     private ?string $libelle_fac = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups('read:facture:data')]
+    #[Groups(['read:facture:data','write:facture:data'])]
     private ?string $remise_ht = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
@@ -72,30 +94,30 @@ class Facture
     private ?\DateTimeInterface $date_paiement = null;
 
     #[ORM\Column(length: 5)]
-    #[Groups('read:facture:data')]
+    #[Groups(['read:facture:data','write:facture:data'])]
     private ?string $currency = null;
 
     #[ORM\OneToMany(mappedBy: 'facture', targetEntity: Reglement::class, orphanRemoval: true)]
-    #[Groups('read:facture:data')]
+    #[Groups(['read:facture:data','write:facture:data'])]
     private Collection $reglements;
 
-    #[ORM\OneToMany(mappedBy: 'facture', targetEntity: Item::class, orphanRemoval: true)]
-    #[Groups('read:facture:data')]
+    #[ORM\OneToMany(mappedBy: 'facture', targetEntity: Item::class, orphanRemoval: true, cascade: ['persist', 'remove'])]
+    #[Groups(['read:facture:data','write:facture:data'])]
     private Collection $items;
 
     #[ORM\OneToOne(cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups('read:facture:data')]
+    #[Groups(['read:facture:data','write:facture:data'])]
     private ?EtatFacture $etatFacture = null;
 
     #[ORM\ManyToOne(inversedBy: 'factures')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups('read:facture:data')]
+    #[Groups(['read:facture:data','write:facture:data'])]
     private ?Customer $customer = null;
 
     #[ORM\ManyToOne(inversedBy: 'factures')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups('read:facture:data')]
+    #[Groups(['read:facture:data','write:facture:data'])]
     private ?Seller $seller = null;
 
     public function __construct()

@@ -4,14 +4,45 @@ namespace App\Entity;
 
 use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
 use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
+use App\Controller\LoginController;
 use App\Repository\SellerRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
+use App\State\SellerProcessor;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: SellerRepository::class)]
-#[ApiResource]
+#[ApiResource(
+    security:"is_granted('ROLE_USER')",
+    operations:[
+        new GetCollection(security:"is_granted('ROLE_ADMIN')"),
+        new Get(security:"is_granted('ROLE_ADMIN') and object.owner == user"),
+        new Put(processor: SellerProcessor::class),
+        new Patch(processor:SellerProcessor::class),
+        new Post(processor:SellerProcessor::class),
+        new Delete(),
+        new Post(
+            controller:LoginController::class,
+            routeName: 'check_login',
+            uriTemplate: 'api/login',
+            denormalizationContext: ['groups'=>['login:seller:data']],
+            normalizationContext:['groups'=>['read:seller:data']],
+            options: ['descriotion'=>'login the user'],
+            description:'loggin the user',
+            shortName:'Login user',
+        )
+    ]
+)]
 #[ApiFilter(SearchFilter::class,properties:[
     'id'=>'exact',
     'denomination'=>'partial',
@@ -20,56 +51,75 @@ use ApiPlatform\Metadata\ApiResource;
     'email'=> 'exact'
     ])
 ]
-class Seller
+class Seller implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups('read:seller:data')]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups('read:seller:data')]
     private ?string $denomination = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups('read:seller:data')]
     private ?string $nom = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups('read:seller:data')]
     private ?string $prenom = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups('read:seller:data')]
     private ?string $adresseSiege = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups('read:seller:data')]
     private ?string $adresseFacturation = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(type: 'string',length: 255, unique: true)]
+    #[Groups(['read:seller:data','login:seller:data'])]
     private ?string $email = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(type: 'json')]
+    #[Groups('read:seller:data')]
+    private $roles = [];
+
+    #[ORM\Column(type:'string',length: 255)]
+    #[Groups('login:seller:data')]
     private ?string $motDePasse = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups('read:seller:data')]
     private ?string $codePostale = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups('read:seller:data')]
     private ?string $ville = null;
 
     #[ORM\Column(length: 9)]
+    #[Groups('read:seller:data')]
     private ?string $siren = null;
 
     #[ORM\Column(length: 14)]
+    #[Groups('read:seller:data')]
     private ?string $siret = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups('read:seller:data')]
     private ?string $rcs = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups('read:seller:data')]
     private ?string $logo = null;
 
     #[ORM\OneToMany(mappedBy: 'seller', targetEntity: Facture::class, orphanRemoval: true)]
     private Collection $factures;
 
     #[ORM\Column]
+    #[Groups('read:seller:data')]
     private ?\DateTimeImmutable $createAt = null;
 
     public function __construct()
@@ -277,6 +327,65 @@ class Seller
     public function setCreateAt(\DateTimeImmutable $createAt): self
     {
         $this->createAt = $createAt;
+
+        return $this;
+    }
+	/**
+	 * Returns the roles granted to the user.
+	 *
+	 * public function getRoles()
+	 * {
+	 * return ['ROLE_USER'];
+	 * }
+	 *
+	 * Alternatively, the roles might be stored in a ``roles`` property,
+	 * and populated in any number of different ways when the user object
+	 * is created.
+	 * @return array<string>
+	 */
+	public function getRoles(): array {
+        $roles = $this->roles;
+        // guarantee every user at least has ROLE_USER
+        $roles[] = 'ROLE_USER';
+
+        return array_unique($roles);
+	}
+
+    public function setRoles(array $roles): self
+    {
+        $this->roles = $roles;
+
+        return $this;
+    }
+	/**
+	 * Removes sensitive data from the user.
+	 *
+	 * This is important if, at any given point, sensitive information like
+	 * the plain-text password is stored on this object.
+	 * @return mixed
+	 */
+	public function eraseCredentials() {
+	}
+
+	/**
+	 * Returns the identifier for this user (e.g. username or email address).
+	 * @return string
+	 */
+	public function getUserIdentifier(): string {
+        return $this->email;
+	}
+	/**
+	 * Returns the hashed password used to authenticate the user.
+	 *
+	 * Usually on authentication, a plain-text password will be compared to this value.
+	 * @return null|string
+	 */
+	public function getPassword(): ?string {
+        return (string) $this->motDePasse;
+	}
+    public function setPassword(string $password): self
+    {
+        $this->motDePasse = $password;
 
         return $this;
     }

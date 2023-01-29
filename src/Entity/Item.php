@@ -6,6 +6,7 @@ use App\Repository\ItemRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use ApiPlatform\Metadata\ApiResource;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ItemRepository::class)]
 #[ApiResource]
@@ -14,24 +15,31 @@ class Item
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['read:item:data'])]
     private ?int $id = null;
 
     #[ORM\Column(type: Types::TEXT)]
+    #[Groups(['write:item:data','read:item:data'])]
     private ?string $description = null;
 
     #[ORM\Column]
+    #[Groups(['write:item:data','read:item:data'])]
     private ?float $quantity = null;
 
     #[ORM\Column]
+    #[Groups(['write:item:data','read:item:data'])]
     private ?float $unit_price_ht = null;
 
     #[ORM\Column]
+    #[Groups(['write:item:data','read:item:data'])]
     private ?float $total_ht = null;
 
     #[ORM\Column(length: 5, nullable: true)]
+    #[Groups(['write:item:data','read:item:data'])]
     private ?string $currency = null;
 
     #[ORM\Column]
+    #[Groups(['write:item:data','read:item:data'])]
     private ?int $tva = null;
 
     #[ORM\ManyToOne(inversedBy: 'items')]
